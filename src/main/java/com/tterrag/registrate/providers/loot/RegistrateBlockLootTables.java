@@ -1,9 +1,13 @@
 package com.tterrag.registrate.providers.loot;
 
 import com.tterrag.registrate.AbstractRegistrate;
-import net.minecraft.core.HolderLookup;
+import net.minecraft.core.Holder;
+import net.minecraft.core.HolderGetter;
+import net.minecraft.core.Registry;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.data.loot.BlockLootSubProvider;
+import net.minecraft.data.loot.LootTableSubProvider;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.flag.FeatureFlags;
 import net.minecraft.world.item.Item;
@@ -14,7 +18,7 @@ import net.minecraft.world.level.storage.loot.entries.LootPoolEntryContainer;
 import net.minecraft.world.level.storage.loot.functions.FunctionUserBuilder;
 import net.minecraft.world.level.storage.loot.predicates.ConditionUserBuilder;
 import net.minecraft.world.level.storage.loot.predicates.LootItemCondition;
-import net.minecraft.world.level.storage.loot.providers.number.NumberProvider;
+import net.minecraft.world.level.storage.loot.providers.number.ints.ContextIntProvider;
 
 import javax.annotation.Generated;
 import java.util.Set;
@@ -26,17 +30,11 @@ public class RegistrateBlockLootTables extends BlockLootSubProvider implements R
     private final AbstractRegistrate<?> parent;
     private final Consumer<RegistrateBlockLootTables> callback;
 
-    private final HolderLookup<Item> itemLookup;
-    private final HolderLookup<Block> blockLookup;
-    private final HolderLookup<EntityType<?>> entityLookup;
-
-    public RegistrateBlockLootTables(HolderLookup.Provider provider, AbstractRegistrate<?> parent, Consumer<RegistrateBlockLootTables> callback) {
-        super(Set.of(), FeatureFlags.REGISTRY.allFlags(), provider);
+    public RegistrateBlockLootTables(LootTableSubProvider.Context output, AbstractRegistrate<?> parent,
+                                     Consumer<RegistrateBlockLootTables> callback) {
+        super(Set.of(), FeatureFlags.REGISTRY.allFlags(), output);
         this.parent = parent;
         this.callback = callback;
-        itemLookup = registries.lookupOrThrow(Registries.ITEM);
-        blockLookup = registries.lookupOrThrow(Registries.BLOCK);
-        entityLookup = registries.lookupOrThrow(Registries.ENTITY_TYPE);
     }
 
     @Override
@@ -49,20 +47,20 @@ public class RegistrateBlockLootTables extends BlockLootSubProvider implements R
         return parent.getAll(Registries.BLOCK).stream().map(Supplier::get).collect(Collectors.toList());
     }
 
-    public HolderLookup.Provider getRegistries() {
-        return this.registries;
+    public <T> HolderGetter<T> lookup(ResourceKey<? extends Registry<? extends T>> key) {
+        return output.lookup(key);
     }
 
-    public HolderLookup<Item> itemLookup() {
-        return itemLookup;
+    public HolderGetter<Item> itemLookup() {
+        return items;
     }
 
-    public HolderLookup<Block> blockLookup() {
-        return blockLookup;
+    public HolderGetter<Block> blockLookup() {
+        return output.lookup(Registries.BLOCK);
     }
 
-    public HolderLookup<EntityType<?>> entityLookup() {
-        return entityLookup;
+    public HolderGetter<EntityType<?>> entityLookup() {
+        return output.lookup(Registries.ENTITY_TYPE);
     }
 
     // @formatter:off
@@ -80,7 +78,7 @@ public class RegistrateBlockLootTables extends BlockLootSubProvider implements R
 
     /** Generated override to expose protected method: {@link BlockLootSubProvider#createSelfDropDispatchTable} */
     @Generated(value = "com.tterrag.registrate.test.meta.UpdateBlockLootTables", date = "Sat, 20 Jun 2026 04:20:08 GMT")
-    public static LootTable.Builder createSelfDropDispatchTable(Block original, LootItemCondition.Builder condition, LootPoolEntryContainer.Builder<?> entry) { return BlockLootSubProvider.createSelfDropDispatchTable(original, condition, entry); }
+    public static LootTable.Builder createSelfDropDispatchTable(Block original, Holder<LootItemCondition> condition, LootPoolEntryContainer.Builder<?> entry) { return BlockLootSubProvider.createSelfDropDispatchTable(original, condition, entry); }
 
     /** Generated override to expose protected method: {@link BlockLootSubProvider#createSilkTouchDispatchTable} */
     @Override
@@ -105,12 +103,12 @@ public class RegistrateBlockLootTables extends BlockLootSubProvider implements R
     /** Generated override to expose protected method: {@link BlockLootSubProvider#createSingleItemTable} */
     @Override
     @Generated(value = "com.tterrag.registrate.test.meta.UpdateBlockLootTables", date = "Sat, 20 Jun 2026 04:20:08 GMT")
-    public LootTable.Builder createSingleItemTable(ItemLike drop, NumberProvider count) { return super.createSingleItemTable(drop, count); }
+    public LootTable.Builder createSingleItemTable(ItemLike drop, Holder<ContextIntProvider> count) { return super.createSingleItemTable(drop, count); }
 
     /** Generated override to expose protected method: {@link BlockLootSubProvider#createSingleItemTableWithSilkTouch} */
     @Override
     @Generated(value = "com.tterrag.registrate.test.meta.UpdateBlockLootTables", date = "Sat, 20 Jun 2026 04:20:08 GMT")
-    public LootTable.Builder createSingleItemTableWithSilkTouch(Block original, ItemLike drop, NumberProvider count) { return super.createSingleItemTableWithSilkTouch(original, drop, count); }
+    public LootTable.Builder createSingleItemTableWithSilkTouch(Block original, ItemLike drop, Holder<ContextIntProvider> count) { return super.createSingleItemTableWithSilkTouch(original, drop, count); }
 
     /** Generated override to expose protected method: {@link BlockLootSubProvider#createSilkTouchOnlyTable} */
     @Override
@@ -205,7 +203,7 @@ public class RegistrateBlockLootTables extends BlockLootSubProvider implements R
     /** Generated override to expose protected method: {@link BlockLootSubProvider#createMultifaceBlockDrops} */
     @Override
     @Generated(value = "com.tterrag.registrate.test.meta.UpdateBlockLootTables", date = "Sat, 20 Jun 2026 04:20:08 GMT")
-    public LootTable.Builder createMultifaceBlockDrops(Block block, LootItemCondition.Builder condition) { return super.createMultifaceBlockDrops(block, condition); }
+    public LootTable.Builder createMultifaceBlockDrops(Block block, Holder<LootItemCondition> condition) { return super.createMultifaceBlockDrops(block, condition); }
 
     /** Generated override to expose protected method: {@link BlockLootSubProvider#createMultifaceBlockDrops} */
     @Override

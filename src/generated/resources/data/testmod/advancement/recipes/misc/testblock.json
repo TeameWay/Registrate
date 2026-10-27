@@ -13,7 +13,7 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipe": "testmod:testblock"
+        "recipes": "testmod:testblock"
       },
       "trigger": "minecraft:recipe_unlocked"
     }

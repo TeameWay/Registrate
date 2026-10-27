@@ -22,7 +22,7 @@ public class RegistryEntry<R, S extends R> extends DeferredHolder<R, S> implemen
 
     @SuppressWarnings("unused")
     public RegistryEntry(AbstractRegistrate<?> owner, DeferredHolder<R, S> key) {
-        super(key.getKey());
+        super(key.key());
 
         if (owner == null)
             throw new NullPointerException("Owner must not be null");

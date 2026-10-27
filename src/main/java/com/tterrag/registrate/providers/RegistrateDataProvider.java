@@ -43,7 +43,7 @@ public class RegistrateDataProvider implements DataProvider {
 
     public RegistrateDataProvider(AbstractRegistrate<?> parent, String modid, GatherDataEvent event) {
         this.mod = modid;
-        this.registriesLookup = event.getLookupProvider();
+        this.registriesLookup = event.getReloadableLookupProvider();
 
         log.debug(DebugMarkers.DATA, "Gathering providers");
         Map<ProviderType<?>, RegistrateProvider> known = new HashMap<>();

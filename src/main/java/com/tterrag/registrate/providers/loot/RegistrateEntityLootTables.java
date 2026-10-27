@@ -2,9 +2,10 @@ package com.tterrag.registrate.providers.loot;
 
 import com.tterrag.registrate.AbstractRegistrate;
 import net.minecraft.core.HolderGetter;
-import net.minecraft.core.HolderLookup;
+import net.minecraft.core.Registry;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.data.loot.EntityLootSubProvider;
+import net.minecraft.data.loot.LootTableSubProvider;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.flag.FeatureFlags;
@@ -23,17 +24,11 @@ public class RegistrateEntityLootTables extends EntityLootSubProvider implements
     private final AbstractRegistrate<?> parent;
     private final Consumer<RegistrateEntityLootTables> callback;
 
-    private final HolderLookup<Item> itemLookup;
-    private final HolderLookup<Block> blockLookup;
-    private final HolderLookup<EntityType<?>> entityLookup;
-
-    public RegistrateEntityLootTables(HolderLookup.Provider p_346214_, AbstractRegistrate<?> parent, Consumer<RegistrateEntityLootTables> callback) {
-        super(FeatureFlags.REGISTRY.allFlags(), p_346214_);
+    public RegistrateEntityLootTables(LootTableSubProvider.Context output, AbstractRegistrate<?> parent,
+                                      Consumer<RegistrateEntityLootTables> callback) {
+        super(FeatureFlags.REGISTRY.allFlags(), output);
         this.parent = parent;
         this.callback = callback;
-        itemLookup = registries.lookupOrThrow(Registries.ITEM);
-        blockLookup = registries.lookupOrThrow(Registries.BLOCK);
-        entityLookup = registries.lookupOrThrow(Registries.ENTITY_TYPE);
     }
 
     @Override
@@ -46,20 +41,20 @@ public class RegistrateEntityLootTables extends EntityLootSubProvider implements
         return parent.getAll(Registries.ENTITY_TYPE).stream().map(Supplier::get);
     }
 
-    public HolderLookup.Provider getRegistries() {
-        return this.registries;
+    public <T> HolderGetter<T> lookup(ResourceKey<? extends Registry<? extends T>> key) {
+        return output.lookup(key);
     }
 
-    public HolderLookup<Item> itemLookup() {
-        return itemLookup;
+    public HolderGetter<Item> itemLookup() {
+        return items;
     }
 
-    public HolderLookup<Block> blockLookup() {
-        return blockLookup;
+    public HolderGetter<Block> blockLookup() {
+        return output.lookup(Registries.BLOCK);
     }
 
-    public HolderLookup<EntityType<?>> entityLookup() {
-        return entityLookup;
+    public HolderGetter<EntityType<?>> entityLookup() {
+        return output.lookup(Registries.ENTITY_TYPE);
     }
 
     // @formatter:off
@@ -68,7 +63,7 @@ public class RegistrateEntityLootTables extends EntityLootSubProvider implements
     /** Generated override to expose protected method: {@link EntityLootSubProvider#killedByFrog} */
     @Override
     @Generated(value = "com.tterrag.registrate.test.meta.UpdateEntityLootTables", date = "Sat, 20 Jun 2026 04:20:42 GMT")
-    public LootItemCondition.Builder killedByFrog(HolderGetter<EntityType<?>> entityTypes) { return super.killedByFrog(entityTypes); }
+    public LootItemCondition.Builder killedByFrog() { return super.killedByFrog(); }
 
     /** Generated override to expose protected method: {@link EntityLootSubProvider#add} */
     @Override

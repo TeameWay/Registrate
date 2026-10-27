@@ -37,11 +37,7 @@ import java.util.function.Function;
 public interface ProviderType<T extends RegistrateProvider> extends GeneratorType<T> {
 
     // SERVER DATA
-    ProviderType<RegistrateDatapackProvider> DYNAMIC = registerServerData("dynamic", RegistrateDatapackProvider::new);
     ProviderType<RegistrateDataMapProvider> DATA_MAP = registerServerData("data_map", RegistrateDataMapProvider::new);
-    ProviderType<RegistrateRecipeRunner> RECIPE_RUNNER = registerServerData("recipe_runner", RegistrateRecipeRunner::new);
-    ProviderType<RegistrateAdvancementProvider> ADVANCEMENT = registerServerData("advancement", RegistrateAdvancementProvider::new);
-    ProviderType<RegistrateLootTableProvider> LOOT = registerServerData("loot", RegistrateLootTableProvider::new);
     ProviderType<RegistrateTagsProvider.Impl<Block>> BLOCK_TAGS = registerTag("tags/block", "blocks", Registries.BLOCK);
     ProviderType<RegistrateTagsProvider.Impl<Enchantment>> ENCHANTMENT_TAGS = registerTag("tags/enchantment", "enchantments", Registries.ENCHANTMENT);
     ProviderType<RegistrateItemTagsProvider> ITEM_TAGS = registerTag("tags/item", Registries.ITEM, c -> new RegistrateItemTagsProvider(c.parent(), c.type(), "items", c.output(), c.provider(), c.get(BLOCK_TAGS).contentsGetter()));
@@ -54,7 +50,9 @@ public interface ProviderType<T extends RegistrateProvider> extends GeneratorTyp
     ProviderType<RegistrateLangProvider> LANG = registerClientProvider("lang", () -> c -> new RegistrateLangProvider(c.parent(), c.output()));
     ProviderType<RegistrateGenericProvider> GENERIC_CLIENT = registerClientProvider("registrate_generic_client_provider", () -> c -> new RegistrateGenericProvider(c.parent(), c.event(), c.type()));
 
-    GeneratorType<RegistrateRecipeProvider> RECIPE = RECIPE_RUNNER.createGenerator("recipe");
+    GeneratorType<RegistrateRecipeProvider> RECIPE = GeneratorType.of("recipe");
+    GeneratorType<RegistrateAdvancementProvider> ADVANCEMENT = GeneratorType.of("advancement");
+    GeneratorType<RegistrateLootTableProvider> LOOT = GeneratorType.of("loot");
     GeneratorType<RegistrateBlockModelGenerator> BLOCKSTATE = MODEL.createGenerator("blockstate");
     GeneratorType<RegistrateItemModelGenerator> ITEM_MODEL = MODEL.createGenerator("item_model");
 
@@ -74,11 +72,7 @@ public interface ProviderType<T extends RegistrateProvider> extends GeneratorTyp
     T create(Context<T> context);
 
     default <R> GeneratorType<R> createGenerator(String type) {
-        return new GeneratorType<>() {
-            public String toString(){
-                return type;
-            }
-        };
+        return GeneratorType.of(type);
     }
 
     interface SimpleServerDataFactory<T extends RegistrateProvider> extends ProviderType<T> {

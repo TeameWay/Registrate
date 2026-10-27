@@ -17,19 +17,22 @@ import com.tterrag.registrate.util.nullness.NonNullFunction;
 import com.tterrag.registrate.util.nullness.NonNullSupplier;
 import com.tterrag.registrate.util.nullness.NonNullUnaryOperator;
 import net.minecraft.client.data.models.model.ModelTemplates;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.Item;
+import net.minecraft.world.item.component.CookingFuel;
+import net.minecraft.world.level.storage.loot.providers.number.floats.ContextFloatProviders;
+import net.minecraft.world.level.storage.loot.providers.number.floats.ResolvableFloat;
+import net.minecraft.world.level.storage.loot.providers.number.ints.ContextIntProvider;
+import net.minecraft.world.level.storage.loot.providers.number.ints.ResolvableInt;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.neoforge.client.extensions.common.IClientItemExtensions;
 import net.neoforged.neoforge.client.extensions.common.RegisterClientExtensionsEvent;
 import net.neoforged.neoforge.event.BuildCreativeModeTabContentsEvent;
 import net.neoforged.neoforge.registries.DeferredHolder;
-import net.neoforged.neoforge.registries.datamaps.builtin.Compostable;
-import net.neoforged.neoforge.registries.datamaps.builtin.FurnaceFuel;
-import net.neoforged.neoforge.registries.datamaps.builtin.NeoForgeDataMaps;
 
 import org.jspecify.annotations.Nullable;
 import java.util.Map;
@@ -231,15 +234,27 @@ public class ItemBuilder<T extends Item, P> extends AbstractBuilder<Item, T, P, 
      * @param tick time in ticks for this item to burn in furnace.
      */
     public ItemBuilder<T, P> burnTime(int tick) {
-        return dataMap(NeoForgeDataMaps.FURNACE_FUELS, new FurnaceFuel(tick));
+        return properties(p -> p.component(DataComponents.COOKING_FUEL, new CookingFuel(
+                new ResolvableInt.Constant(tick),
+                ResolvableFloat.fromKey(ContextFloatProviders.COOKING_DEFAULT_SPEED_MULTIPLIER))));
     }
 
     /**
-     * Add compost chance for the item
-     * @param chance chance for composter to increase one level when composting this item.
+     * 设置由数据包注册表提供的燃烧时间。
+     *
+     * @param burnTime 燃烧时间提供器
      */
-    public ItemBuilder<T, P> compostable(float chance) {
-        return dataMap(NeoForgeDataMaps.COMPOSTABLES, new Compostable(chance));
+    public ItemBuilder<T, P> burnTime(ResourceKey<ContextIntProvider> burnTime) {
+        return properties(p -> p.cookingFuel(burnTime));
+    }
+
+    /**
+     * 设置由数据包注册表提供的堆肥层数。
+     *
+     * @param layers 堆肥层数提供器
+     */
+    public ItemBuilder<T, P> compostable(ResourceKey<ContextIntProvider> layers) {
+        return properties(p -> p.compostable(layers));
     }
 
     private @Nullable Function<T, NonNullSupplier<Supplier<IClientItemExtensions>>> clientExtensionFunc;

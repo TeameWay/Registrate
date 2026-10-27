@@ -13,7 +13,7 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipe": "testmod:diamond_block_from_testblock_smelting"
+        "recipes": "testmod:diamond_block_from_testblock_smelting"
       },
       "trigger": "minecraft:recipe_unlocked"
     }

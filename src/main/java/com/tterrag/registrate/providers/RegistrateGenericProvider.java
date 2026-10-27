@@ -29,7 +29,7 @@ public final class RegistrateGenericProvider implements RegistrateProvider
         this.providerType = providerType;
 
         output = event.getGenerator().getPackOutput();
-        registries = event.getLookupProvider();
+        registries = event.getReloadableLookupProvider();
     }
 
     public RegistrateGenericProvider add(Generator generator)

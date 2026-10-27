@@ -1,0 +1,11 @@
+# Normalize text files to LF across platforms.
+* text=auto eol=lf
+
+# Keep Windows scripts usable in tools that expect CRLF.
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+
+# Generated files always use LF.
+src/generated/**/.cache/cache text eol=lf
+src/generated/**/*.json text eol=lf

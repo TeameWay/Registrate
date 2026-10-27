@@ -1,8 +1,10 @@
 package com.tterrag.registrate.providers;
 
 import net.minecraft.core.Registry;
-import net.minecraft.core.RegistrySetBuilder;
+import net.minecraft.core.registries.MultiRegistryBootstrap;
+import net.minecraft.core.registries.SingleRegistryBootstrap;
 import net.minecraft.resources.ResourceKey;
+import net.neoforged.neoforge.data.event.DatapackRegistryGatherer;
 
 import org.jspecify.annotations.Nullable;
 import java.util.*;
@@ -10,7 +12,12 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class DataProviderInitializer {
 
-	private final RegistrySetBuilder datapackEntryProvider = new RegistrySetBuilder();
+	@FunctionalInterface
+	private interface RegistryBootstrap {
+		void apply(DatapackRegistryGatherer gatherer);
+	}
+
+	private final List<RegistryBootstrap> registryBootstraps = new ArrayList<>();
 
 	private final Map<ProviderType<?>, ProviderType<? extends RegistrateLookupFillerProvider>> providerDependencies = new ConcurrentHashMap<>();
 
@@ -18,8 +25,8 @@ public class DataProviderInitializer {
 		addDependency(ProviderType.ITEM_TAGS, ProviderType.BLOCK_TAGS);
 	}
 
-	protected RegistrySetBuilder getDatapackRegistryProviders() {
-		return datapackEntryProvider;
+	public void gatherRegistryEntries(DatapackRegistryGatherer gatherer) {
+		registryBootstraps.forEach(bootstrap -> bootstrap.apply(gatherer));
 	}
 
 	protected List<Sorted> getSortedProviders() {
@@ -41,8 +48,12 @@ public class DataProviderInitializer {
 		return ans;
 	}
 
-	public <T> void add(ResourceKey<Registry<T>> registry, RegistrySetBuilder.RegistryBootstrap<T> provider) {
-		datapackEntryProvider.add(registry, provider);
+	public <T> void add(ResourceKey<? extends Registry<T>> registry, SingleRegistryBootstrap<T> bootstrap) {
+		registryBootstraps.add(gatherer -> gatherer.add(registry, bootstrap));
+	}
+
+	public void add(MultiRegistryBootstrap bootstrap) {
+		registryBootstraps.add(gatherer -> gatherer.add(bootstrap));
 	}
 
 	public void addDependency(ProviderType<?> dependent, ProviderType<? extends RegistrateLookupFillerProvider> parent) {

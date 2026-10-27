@@ -1,113 +1,70 @@
 package com.tterrag.registrate.providers;
 
-import com.google.common.collect.Lists;
 import com.tterrag.registrate.AbstractRegistrate;
-import lombok.Getter;
-import lombok.extern.log4j.Log4j2;
-
 import net.minecraft.advancements.Advancement;
 import net.minecraft.advancements.AdvancementHolder;
 import net.minecraft.core.Holder;
-import net.minecraft.core.HolderLookup;
-import net.minecraft.data.CachedOutput;
-import net.minecraft.data.DataProvider;
-import net.minecraft.data.PackOutput;
+import net.minecraft.core.HolderGetter;
+import net.minecraft.core.Registry;
+import net.minecraft.data.worldgen.BootstrapContext;
 import net.minecraft.network.chat.MutableComponent;
-import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.Identifier;
-import net.neoforged.fml.LogicalSide;
+import net.minecraft.resources.ResourceKey;
 import net.neoforged.neoforge.common.conditions.ICondition;
-import net.neoforged.neoforge.common.conditions.WithConditions;
 
-import org.jspecify.annotations.Nullable;
-import java.nio.file.Path;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Objects;
-import java.util.Set;
-import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
+import java.util.stream.Stream;
 
-@Log4j2
-public class RegistrateAdvancementProvider implements RegistrateProvider, Consumer<AdvancementHolder> {
+public class RegistrateAdvancementProvider implements BootstrapContext<Advancement>, Consumer<AdvancementHolder> {
 
     private final AbstractRegistrate<?> owner;
-    private final PackOutput packOutput;
-    private final CompletableFuture<HolderLookup.Provider> registriesLookup;
-    private final List<CompletableFuture<?>> advancementsToSave = Lists.newArrayList();
-    @Getter
-    private HolderLookup.@Nullable Provider provider;
+    private final BootstrapContext<Advancement> advancements;
 
-    public RegistrateAdvancementProvider(AbstractRegistrate<?> owner, PackOutput packOutputIn, CompletableFuture<HolderLookup.Provider> registriesLookupIn) {
+    public RegistrateAdvancementProvider(AbstractRegistrate<?> owner, BootstrapContext<Advancement> advancements) {
         this.owner = owner;
-        this.packOutput = packOutputIn;
-        this.registriesLookup = registriesLookupIn;
+        this.advancements = advancements;
+    }
+
+    @Override
+    public Holder.Reference<Advancement> register(ResourceKey<Advancement> key, Advancement value) {
+        return advancements.register(key, value);
+    }
+
+    @Override
+    public Holder.Reference<Advancement> register(ResourceKey<Advancement> key, Advancement value, ICondition... conditions) {
+        return advancements.register(key, value, conditions);
+    }
+
+    @Override
+    public <S> HolderGetter<S> lookup(ResourceKey<? extends Registry<? extends S>> key) {
+        return advancements.lookup(key);
+    }
+
+    @Deprecated
+    @Override
+    public <S> Stream<Holder.Reference<S>> listContextElements(ResourceKey<? extends Registry<? extends S>> key) {
+        return advancements.listContextElements(key);
     }
 
     public <T> Holder<T> resolve(ResourceKey<T> key) {
-        if (provider == null) throw new IllegalStateException("Cannot resolve holder before provider is initialized");
-        return provider.lookupOrThrow(key.registryKey()).getOrThrow(key);
+        return lookup(key.registryKey()).getOrThrow(key);
     }
 
     public MutableComponent title(String category, String name, String title) {
         return owner.addLang("advancements", Identifier.fromNamespaceAndPath(category, name), "title", title);
     }
 
-    public MutableComponent desc(String category, String name, String desc) {
-        return owner.addLang("advancements", Identifier.fromNamespaceAndPath(category, name), "description", desc);
-    }
-
-    private @Nullable CachedOutput cache;
-    private final Set<Identifier> seenAdvancements = new HashSet<>();
-
-    @Override
-    public CompletableFuture<?> run(CachedOutput cache) {
-        return registriesLookup.thenCompose(lookup -> {
-            this.provider = lookup;
-            advancementsToSave.clear();
-
-            try {
-                this.cache = cache;
-                this.seenAdvancements.clear();
-                owner.genData(ProviderType.ADVANCEMENT, this);
-            } finally {
-                this.cache = null;
-            }
-
-            return CompletableFuture.allOf(advancementsToSave.toArray(CompletableFuture[]::new));
-        });
+    public MutableComponent desc(String category, String name, String description) {
+        return owner.addLang("advancements", Identifier.fromNamespaceAndPath(category, name), "description", description);
     }
 
     @Override
-    public void accept(@Nullable AdvancementHolder holder) {
-        withConditions(holder, List.of());
+    public void accept(AdvancementHolder holder) {
+        holder.register(advancements);
     }
 
-    public void withConditions(@Nullable AdvancementHolder holder, List<ICondition> conditions) {
-        this.registriesLookup.thenAccept(lookup -> {
-            CachedOutput cache = this.cache;
-            if (cache == null) {
-                throw new IllegalStateException("Cannot accept advancements outside of act");
-            }
-            Objects.requireNonNull(holder, "Cannot accept a null advancement");
-            Path path = getPath(this.packOutput.getOutputFolder(), holder);
-            if (!seenAdvancements.add(holder.id())) {
-                throw new IllegalStateException("Duplicate advancement " + holder.id());
-            } else if (conditions.isEmpty()) {
-                advancementsToSave.add(DataProvider.saveStable(cache, lookup, Advancement.CODEC, holder.value(), path));
-            } else {
-                advancementsToSave.add(DataProvider.saveStable(cache, lookup, Advancement.CONDITIONAL_CODEC,
-                        Optional.of(new WithConditions<>(conditions, holder.value())), path));
-            }
-        });
-    }
-
-    private static Path getPath(Path pathIn, AdvancementHolder advancementIn) {
-        return pathIn.resolve("data/" + advancementIn.id().getNamespace() + "/advancement/" + advancementIn.id().getPath() + ".json");
-    }
-
-    public String getName() {
-        return "Advancements";
+    public void withConditions(AdvancementHolder holder, List<ICondition> conditions) {
+        holder.register(advancements, conditions.toArray(ICondition[]::new));
     }
 }

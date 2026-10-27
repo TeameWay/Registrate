@@ -1,20 +1,24 @@
 package com.tterrag.registrate.providers.generators;
 
+import com.tterrag.registrate.AbstractRegistrate;
 import com.tterrag.registrate.providers.ProviderType;
 import com.tterrag.registrate.util.DataIngredient;
 import com.tterrag.registrate.util.nullness.NonNullSupplier;
-import lombok.experimental.Delegate;
+import net.minecraft.advancements.Advancement;
+import net.minecraft.advancements.AdvancementHolder;
 import net.minecraft.advancements.predicates.ItemPredicate;
 import net.minecraft.advancements.predicates.MinMaxBounds;
 import net.minecraft.advancements.triggers.Criterion;
 import net.minecraft.advancements.triggers.EnterBlockTrigger;
 import net.minecraft.advancements.triggers.InventoryChangeTrigger;
 import net.minecraft.core.Holder;
-import net.minecraft.core.HolderLookup;
+import net.minecraft.core.HolderGetter;
+import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.data.BlockFamily;
 import net.minecraft.data.recipes.*;
+import net.minecraft.data.worldgen.BootstrapContext;
 import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.tags.TagKey;
@@ -28,62 +32,72 @@ import net.minecraft.world.level.ItemLike;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.SuspiciousEffectHolder;
 import net.neoforged.neoforge.common.Tags;
+import net.neoforged.neoforge.common.conditions.ICondition;
 import org.jspecify.annotations.Nullable;
 
 import javax.annotation.CheckReturnValue;
 import javax.annotation.Generated;
 import java.util.List;
 import java.util.function.Supplier;
+import java.util.stream.Stream;
 
 public class RegistrateRecipeProvider extends RecipeProvider implements RecipeOutput {
 
-    private final RegistrateRecipeRunner runner;
+    private final AbstractRegistrate<?> owner;
+    private final HolderGetter<Block> blockLookup;
+    private final HolderGetter<EntityType<?>> entityLookup;
 
-    @Delegate
-    private final RecipeOutput outputDelegated;
-
-    private final HolderLookup<Item> itemLookup;
-    private final HolderLookup<Block> blockLookup;
-    private final HolderLookup<EntityType<?>> entityLookup;
-
-    public RegistrateRecipeProvider(RegistrateRecipeRunner runner, HolderLookup.Provider registries, RecipeOutput output) {
-        super(registries, output);
-        this.runner = runner;
-        this.outputDelegated = output;
-        itemLookup = registries.lookupOrThrow(Registries.ITEM);
-        blockLookup = registries.lookupOrThrow(Registries.BLOCK);
-        entityLookup = registries.lookupOrThrow(Registries.ENTITY_TYPE);
+    public RegistrateRecipeProvider(AbstractRegistrate<?> owner, BootstrapContext<Recipe<?>> recipes, BootstrapContext<Advancement> advancements) {
+        super(recipes, advancements);
+        this.owner = owner;
+        this.blockLookup = lookup(Registries.BLOCK);
+        this.entityLookup = lookup(Registries.ENTITY_TYPE);
     }
 
     @Override
     public void buildRecipes() {
-        runner.provider = this;
-        runner.owner.genData(ProviderType.RECIPE, this);
-        runner.provider = null;
+        owner.genData(ProviderType.RECIPE, this);
     }
 
-    public HolderLookup.Provider registries() {
-        return registries;
+    @Override
+    public void accept(ResourceKey<Recipe<?>> id, Recipe<?> recipe, @Nullable AdvancementHolder advancement, ICondition... conditions) {
+        output.accept(id, recipe, advancement, conditions);
     }
 
-    public HolderLookup<Item> itemLookup() {
-        return itemLookup;
+    @Override
+    public Advancement.Builder advancement() {
+        return output.advancement();
     }
 
-    public HolderLookup<Block> blockLookup() {
+    @Override
+    public <S> HolderGetter<S> lookup(ResourceKey<? extends Registry<? extends S>> key) {
+        return output.lookup(key);
+    }
+
+    @Deprecated
+    @Override
+    public <S> Stream<Holder.Reference<S>> listContextElements(ResourceKey<? extends Registry<? extends S>> key) {
+        return output.listContextElements(key);
+    }
+
+    public HolderGetter<Item> itemLookup() {
+        return items;
+    }
+
+    public HolderGetter<Block> blockLookup() {
         return blockLookup;
     }
 
-    public HolderLookup<EntityType<?>> entityLookup() {
+    public HolderGetter<EntityType<?>> entityLookup() {
         return entityLookup;
     }
 
     public <T> Holder<T> resolve(ResourceKey<T> key) {
-        return registries.lookupOrThrow(key.registryKey()).getOrThrow(key);
+        return lookup(key.registryKey()).getOrThrow(key);
     }
 
     public Identifier safeId(Identifier id) {
-        return Identifier.fromNamespaceAndPath(runner.owner.getModid(), safeName(id));
+        return Identifier.fromNamespaceAndPath(owner.getModid(), safeName(id));
     }
 
     public Identifier safeId(DataIngredient source) {
@@ -95,7 +109,7 @@ public class RegistrateRecipeProvider extends RecipeProvider implements RecipeOu
     }
 
     public ResourceKey<Recipe<?>> safeKey(Identifier id) {
-        return ResourceKey.create(Registries.RECIPE, Identifier.fromNamespaceAndPath(runner.owner.getModid(), safeName(id)));
+        return ResourceKey.create(Registries.RECIPE, Identifier.fromNamespaceAndPath(owner.getModid(), safeName(id)));
     }
 
     public ResourceKey<Recipe<?>> safeKey(DataIngredient source) {
